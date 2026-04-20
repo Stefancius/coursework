@@ -7,19 +7,21 @@ struct dataPoint {
   float temp;
 };
 
-enum PowerMode {
+enum powerMode {
   ACTIVE,
   IDLE,
   POWER_DOWN
 };
 
-PowerMode currentMode = ACTIVE;
+powerMode currentMode = ACTIVE;
+
 
 const int MAX_SAMPLES = 50;
 
 float frequency[MAX_SAMPLES];
 float magnitude[MAX_SAMPLES];
 
+int sample_delay = 1000;
 
 dataPoint data[MAX_SAMPLES];
 
@@ -61,44 +63,75 @@ void collect_temperature_data(){
 
 
 void apply_dft() { //convert temp to frequency data
-  for ( int k=0; k<MAX_SAMPLES; k++){
+  for ( int i=0; i<MAX_SAMPLES; i++){
     float re = 0;
     float im = 0;
 
-    for (int n = 0; n<MAX_SAMPLES; n++){
+    for (int j = 0; j<MAX_SAMPLES; j++){
       // angle of frequncy 
-      float phi = 2 * 3.1415 * k * n / MAX_SAMPLES;
+      float phi = 2 * 3.1415 * i * j / MAX_SAMPLES;
 
-      re += data[n].temp*cos(phi);
-      im -= data[n].temp*sin(phi);
+      re += data[j].temp*cos(phi);
+      im -= data[j].temp*sin(phi);
     }  
   //magnitude of frequency 
-  magnitude[k] = sqrt(re*re + im*im);
+  magnitude[i] = sqrt(re*re + im*im);
 
-  float Fs = 1.0; // sampling rate
-  frequency[k] = (k * Fs) / MAX_SAMPLES; // frequency in HZ
+  float sample_rate = 1.0;
+  frequency[i] = (i * sample_rate) / MAX_SAMPLES; // frequency in HZ
   }  
 }
+
+
+
+powerMode decide_mode(){
+  if (index < 2){
+    return POWER_DOWN;
+  
+  }
+
+  float temp_difference = data[index-1].temp - data[index-2].temp;
+
+  float time_difference = data[index-1].time - data[index-2].time;
+
+  if(time_difference<=0){
+    return POWER_DOWN;
+  }
+
+  float rate_of_change = fabs(temp_difference/time_difference);
+
+  if(rate_of_change>1){
+    return ACTIVE;
+  } else if(rate_of_change >0.1){
+    return IDLE;
+  } else {
+    return POWER_DOWN;
+  }
+
+} 
 
 
 void send_data_to_pc() {
   if (index < MAX_SAMPLES){// read values up to 50 samples 
     collect_temperature_data();
-    delay(1000); // 1sec delay between readings 
+    delay(sample_delay); // 
   }
 
   //run dft
   if (index == MAX_SAMPLES){
     apply_dft();
   
-    currentMode = decide_power_mode();
+    currentMode = decide_mode();
 
     Serial.print("Mode:  ");
     if(currentMode == ACTIVE){
+      sample_delay = 1000;
       Serial.println("ACTIVE");
     } else if(currentMode == IDLE) {
+      sample_delay = 5000;
       Serial.println("IDLE");
     } else {
+      sample_delay = 30000;
       Serial.println("POWER_DOWN");
     }
  
@@ -106,33 +139,13 @@ void send_data_to_pc() {
   }
 }
 
-
-PowerMode decide_power_mode() {
-  int max_value = 1; 
-
-  for (int i = 2; i<MAX_SAMPLES; i++){
-    if(magnitude[i]>magnitude[max_value]){
-      max_value = i;
-    }
-  }
-
-  
-  float max_frequency = frequency[max_value];
-
-  if(max_frequency>0.5){
-    return ACTIVE;
-  } else if (max_frequency > 0.1){
-    return IDLE;
-  } else{
-    return POWER_DOWN;
-  }
-}
  
 void loop() {
   send_data_to_pc();
 }
 
   
+
 
 
 
