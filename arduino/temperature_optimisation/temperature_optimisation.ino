@@ -48,7 +48,7 @@ void collect_temperature_data(){
 
   float degreesC = 1.0/(log(R/R0) / B + 1.0 / 298.15)- 273.15;
   
-  float timeNow = millis()/1000.0; // time in secs 
+  int timeNow = millis()/1000.0; // time in secs 
 
   data[index].temp = degreesC;
   data[index].time = timeNow;
