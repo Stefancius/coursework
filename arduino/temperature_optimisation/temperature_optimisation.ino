@@ -16,7 +16,7 @@ enum powerMode {
 powerMode currentMode = ACTIVE;
 
 
-const int MAX_SAMPLES = 50;
+const int MAX_SAMPLES = 180; //1 reding per second for 3 minutes
 
 float frequency[MAX_SAMPLES];
 float magnitude[MAX_SAMPLES];
@@ -33,6 +33,7 @@ const int R0 = 100000;
 
 void setup() {
   Serial.begin(9600);
+  Serial.println("time, tempetrature");
 }
 
 void collect_temperature_data(){
@@ -53,10 +54,10 @@ void collect_temperature_data(){
   data[index].temp = degreesC;
   data[index].time = timeNow;
 
-  Serial.print("  Time: ");
+  
   Serial.print(timeNow);
-  Serial.print("    Temp: ");
-  Serial.println(degreesC);
+  Serial.print(",");
+  Serial.println(degreesC); 
 
   index++; 
 }
